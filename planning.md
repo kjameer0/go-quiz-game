@@ -21,3 +21,11 @@ This app should allow a user to:
 4. check user input for correctness
 5. mark a user as correct when they get an answer right
 
+Relevant tools
+
+1. flags package
+2. csv package
+3. os
+4. goroutines
+5. channels
+6. timer package
