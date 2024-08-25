@@ -22,9 +22,9 @@ func getFileText(userPath string) (string, error) {
 }
 
 // answerChannel chan int, recordLengthChannel chan int
-func handleTimeEnd(wg *sync.WaitGroup, answerChannel chan int, questionCount int) {
+func handleTimeEnd(wg *sync.WaitGroup, answerChannel chan int, questionCount int, limit int) {
 	defer wg.Done()
-	timer := time.NewTimer(time.Duration(3) * time.Second)
+	timer := time.NewTimer(time.Duration(limit) * time.Second)
 	<-timer.C
 	close(answerChannel)
 	correctAnswers := <-answerChannel
@@ -34,6 +34,7 @@ func handleTimeEnd(wg *sync.WaitGroup, answerChannel chan int, questionCount int
 
 func main() {
 	fileFlagPtr := flag.String("f", "problems.csv", "Path to a valid csv file")
+	limitFlagPtr := flag.Int("limit", 0, "Seconds you have to complete the quiz")
 	flag.Parse()
 	fmt.Println("Press Enter to continue...")
 
@@ -58,7 +59,9 @@ func main() {
 		log.Fatal(err)
 	}
 	answerChannel := make(chan int, 1)
-	go handleTimeEnd(&wg, answerChannel, len(records))
+	if *limitFlagPtr > 0 {
+		go handleTimeEnd(&wg, answerChannel, len(records), *limitFlagPtr)
+	}
 
 	go func() {
 		defer wg.Done()
