@@ -18,10 +18,10 @@ func getFileText(userPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	//return contents of file
 	return string(file), nil
 }
 
-// answerChannel chan int, recordLengthChannel chan int
 func handleTimeEnd(wg *sync.WaitGroup, answerChannel chan int, questionCount int, limit int) {
 	defer wg.Done()
 	timer := time.NewTimer(time.Duration(limit) * time.Second)
@@ -68,7 +68,7 @@ func main() {
 		var correctAnswers int = 0
 		for i := 0; i < len(records); i += 1 {
 			var curQuestion string = records[i][0]
-			var curAnswer string = records[i][1]
+			var curAnswer string = strings.ToLower(strings.TrimSpace(records[i][1]))
 			var userAnswer string
 			fmt.Printf("Problem %v: %v = ", i+1, curQuestion)
 			_, err := fmt.Scan(&userAnswer)
