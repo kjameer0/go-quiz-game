@@ -34,7 +34,7 @@ func handleTimeEnd(wg *sync.WaitGroup, answerChannel chan int, questionCount int
 
 func main() {
 	fileFlagPtr := flag.String("f", "problems.csv", "Path to a valid csv file")
-	limitFlagPtr := flag.Int("limit", 0, "Seconds you have to complete the quiz")
+	limitFlagPtr := flag.Int("limit", 30, "Seconds you have to complete the quiz")
 	flag.Parse()
 	fmt.Println("Press Enter to continue...")
 
@@ -59,9 +59,7 @@ func main() {
 		log.Fatal(err)
 	}
 	answerChannel := make(chan int, 1)
-	if *limitFlagPtr > 0 {
-		go handleTimeEnd(&wg, answerChannel, len(records), *limitFlagPtr)
-	}
+	go handleTimeEnd(&wg, answerChannel, len(records), *limitFlagPtr)
 
 	go func() {
 		defer wg.Done()
@@ -84,7 +82,6 @@ func main() {
 				default: // If the channel is empty, do nothing.
 				}
 				answerChannel <- correctAnswers
-				fmt.Println("sent val")
 			}
 		}
 		fmt.Printf("\nYou got %v out of %v\n", <-answerChannel, len(records))
