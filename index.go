@@ -1,14 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"encoding/csv"
+	"flag"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 	"sync"
 	"time"
-	"bufio"
 )
 
 func getFileText(userPath string) (string, error) {
@@ -20,15 +21,20 @@ func getFileText(userPath string) (string, error) {
 	return string(file), nil
 }
 
-func handleTimeEnd(wg *sync.WaitGroup) {
+// answerChannel chan int, recordLengthChannel chan int
+func handleTimeEnd(wg *sync.WaitGroup, answerChannel chan int, questionCount int) {
 	defer wg.Done()
 	timer := time.NewTimer(time.Duration(3) * time.Second)
 	<-timer.C
-	fmt.Println("Time is up for the quiz")
+	close(answerChannel)
+	correctAnswers := <-answerChannel
+	fmt.Printf("\nYou got %v out of %v\n", correctAnswers, questionCount)
 	os.Exit(0)
 }
 
 func main() {
+	fileFlagPtr := flag.String("f", "problems.csv", "Path to a valid csv file")
+	flag.Parse()
 	fmt.Println("Press Enter to continue...")
 
 	// Create a new reader from standard input
@@ -42,37 +48,43 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	go handleTimeEnd(&wg)
+	filetext, err := getFileText(*fileFlagPtr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	r := csv.NewReader(strings.NewReader(filetext))
+	records, err := r.ReadAll()
+	if err != nil {
+		log.Fatal(err)
+	}
+	answerChannel := make(chan int, 1)
+	go handleTimeEnd(&wg, answerChannel, len(records))
 
 	go func() {
 		defer wg.Done()
-		filetext, err := getFileText("problems.csv")
-		if err != nil {
-			log.Fatal(err)
-		}
 
-		r := csv.NewReader(strings.NewReader(filetext))
-		records, err := r.ReadAll()
-		if err != nil {
-			log.Fatal(err)
-		}
-
+		// recordLengthChannel <- len(records)
 		var correctAnswers int = 0
 		for i := 0; i < len(records); i += 1 {
 			var curQuestion string = records[i][0]
 			var curAnswer string = records[i][1]
 			var userAnswer string
-			fmt.Println(curQuestion)
+			fmt.Printf("Problem %v: %v = ", i+1, curQuestion)
 			_, err := fmt.Scan(&userAnswer)
 			if err != nil {
 				log.Fatal("Something went wrong")
 			}
-			fmt.Println(userAnswer)
 			if userAnswer == curAnswer {
 				correctAnswers += 1
+				select {
+				case <-answerChannel: // If there's a message, receive it to remove it.
+				default: // If the channel is empty, do nothing.
+				}
+				answerChannel <- correctAnswers
+				fmt.Println("sent val")
 			}
 		}
-		fmt.Printf("You got %v out of %v\n", correctAnswers, len(records))
+		fmt.Printf("\nYou got %v out of %v\n", <-answerChannel, len(records))
 	}()
 
 	wg.Wait()
